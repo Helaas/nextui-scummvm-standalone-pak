@@ -45,9 +45,13 @@ per-game options, virtual keyboard, GUI launcher, and proper engine coverage.
 - Power button is `/dev/input/event1` (handled by minui-power-control).
 - Existing `ScummVM.pak` on the SD card is the **libretro** core — our pak
   must use a distinct tag: **`SCUMMVMSA`**.
-- ROM convention in use: `/Roms/<Game> (SCUMMVM)/` folders containing a
-  `.scummvm` file (holds the game ID, e.g. `scumm:monkey`) and an `.m3u`
-  pointing at the `.scummvm` file.
+- ROM convention in use: hidden library at
+  `/Roms/ScummVM (SCUMMVMSA).disabled/<Game>/` (game data plus `<Game>.scummvm`
+  holding the ID, e.g. `scumm:freddi`, and a `<Game>.m3u`), surfaced as per-game
+  shortcut folders `/Roms/<Game> (SCUMMVMSA)/` whose `.m3u` points into the
+  library. The `(SCUMMVMSA)` folder tag is what makes NextUI route the ROM to
+  this pak instead of the libretro `(SCUMMVM)` one; main-menu art lives at
+  `/Roms/.media/<Game> (SCUMMVMSA).png`.
 
 ### Toolchain (`ghcr.io/loveretro/tg5040-toolchain@sha256:f131c6af…`)
 
@@ -112,6 +116,11 @@ device's `/usr/lib`) and glibc core libs (device firmware is newer).
 3. `LD_LIBRARY_PATH=$PAK_DIR/lib:/usr/trimui/lib:…`
 4. Resolve `$ROM`: `.m3u` → follow to `.scummvm` (up to 3 hops) → game ID =
    file contents, game dir = its folder. No/invalid ROM → ScummVM GUI launcher.
+   NextUI typically resolves the shortcut `.m3u` itself and passes the
+   `.scummvm` directly. Strip whitespace from the ID with
+   `sed 's/[[:space:]]//g'`, **not** `tr -d '[:space:]'`: the device's BusyBox
+   `tr` ignores POSIX classes and deletes the literal characters
+   (`scumm:puttzoo` → `ummuttzoo`), which makes ScummVM reject the game.
 5. `echo 1 > /tmp/stay_awake` (no idle sleep mid-game), removed on exit.
 6. `minui-power-control scummvm &` then run
    `scummvm --fullscreen --config=… --savepath=… --themepath=… --extrapath=…

@@ -32,7 +32,7 @@ resolve_rom() {
 	case "$_rom" in
 		*.scummvm)
 			if [ -f "$_rom" ]; then
-				GAME_ID="$(tr -d '[:space:]' < "$_rom")"
+				GAME_ID="$(sed 's/[[:space:]]//g' "$_rom")"
 				GAME_DIR="$(dirname "$_rom")"
 			fi
 			;;
