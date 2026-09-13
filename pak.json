@@ -1,0 +1,16 @@
+{
+  "name": "SCUMMVMSA",
+  "version": "v1.0.0",
+  "type": "EMU",
+  "description": "Standalone ScummVM 2026.3.0 for NextUI. Full ScummVM GUI and options, per-game keymaps, virtual keyboard. Power button sleep/shutdown via minui-power-control.",
+  "author": "Helaas",
+  "repo_url": "https://github.com/Helaas/nextui-scummvm-standalone-pak",
+  "release_filename": "SCUMMVMSA.pak.zip",
+  "screenshots": [],
+  "platforms": [
+    "tg5040"
+  ],
+  "changelog": {
+    "v1.0.0": "Initial release. Standalone ScummVM 2026.3.0 (pinned to fed42f2) built with the tg5040 toolchain, with minui-power-control 3.0.0 for power button deep sleep and shutdown."
+  }
+}

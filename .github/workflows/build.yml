@@ -1,0 +1,65 @@
+name: Build
+
+# Builds standalone ScummVM and packages SCUMMVMSA.pak.zip, the archive
+# Pak Store installs on tg5040 devices.
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      version:
+        description: Version string read from pak.json
+        value: ${{ jobs.build.outputs.version }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Standalone ScummVM (SCUMMVMSA.pak.zip)
+    # arm64 runs the same linux/arm64 variant of the pinned toolchain image as
+    # local builds on Apple Silicon. Free for public repositories.
+    runs-on: ubuntu-24.04-arm
+    # A full ScummVM build is considerably larger than a libretro core.
+    timeout-minutes: 180
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from pak.json
+        id: meta
+        run: |
+          version="$(jq -er .version pak.json)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building SCUMMVMSA $version"
+
+      # make package also runs scripts/verify-binary.sh and asserts the archive
+      # layout, so a binary that some firmware cannot load fails here.
+      - name: Build and package
+        run: make package
+
+      - name: Summarize package
+        run: |
+          set -euo pipefail
+          {
+            echo "### SCUMMVMSA ${{ steps.meta.outputs.version }}"
+            echo '```'
+            unzip -Z1 build/release/SCUMMVMSA.pak.zip | sort | head -50
+            echo "... ($(unzip -Z1 build/release/SCUMMVMSA.pak.zip | wc -l) files total)"
+            echo
+            du -h build/release/SCUMMVMSA.pak.zip build/stage/usr/bin/scummvm
+            sha256sum build/stage/usr/bin/scummvm build/release/SCUMMVMSA.pak.zip
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SCUMMVMSA.pak.zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCUMMVMSA-pak-zip
+          path: build/release/SCUMMVMSA.pak.zip
+          if-no-files-found: error
