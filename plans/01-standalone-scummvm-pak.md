@@ -5,10 +5,18 @@
 - Scaffold complete: Makefile, launch.sh, pak.json, scripts, CI workflows,
   README. ScummVM checkout (fed42f20 / v2026.3.0) and minui-power-control
   3.0.0 (sha256-verified) fetch cleanly.
-- `make package` was interrupted mid-compile (partial objects in
-  `.cache/scummvm`). Resume with `make package`; use `make distclean` first
-  for a from-scratch build.
-- Not yet done: first successful package, on-device testing, GitHub repo push.
+- First successful `make package` produced `build/release/SCUMMVMSA.pak.zip`
+  (121 MB, 146 files); `make verify` passes (AArch64, stripped, no non-empty
+  RPATH, glibc <= 2.28).
+- Deployed over SSH to the Smart Pro at `192.168.0.112`
+  (`/mnt/SDCARD/Emus/tg5040/SCUMMVMSA.pak`); on-device smoke test runs
+  `ScummVM 2026.3.0` (SDL 2.26.1, 1280x720).
+- Build fixes applied en route: `--prefix=/usr` so `make install` lands in
+  `usr/bin` + `usr/share`; `scripts/strip-rpath.py` normalizes the vendor
+  RPATHs in bundled sysroot libraries; `collect-libs.sh` clears `lib/` so
+  rebuilds are idempotent; `verify-binary.sh` accepts an empty RPATH.
+- Remaining: full on-device gameplay test (controls, power-button
+  sleep/shutdown, save/load, quit to menu), CI verification, tag v1.0.0.
 
 ## Goal
 

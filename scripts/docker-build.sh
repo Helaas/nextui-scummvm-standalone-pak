@@ -24,6 +24,7 @@ export CFLAGS="-mcpu=cortex-a53 -mtune=cortex-a53"
 
 ./configure \
 	--host=aarch64-nextui-linux-gnu \
+	--prefix=/usr \
 	--with-sdl-prefix=/tmp/sdlfix \
 	--enable-release-mode \
 	--enable-optimizations \

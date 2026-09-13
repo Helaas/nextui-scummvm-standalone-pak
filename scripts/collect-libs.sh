@@ -8,6 +8,9 @@ set -eu
 BINARY="${1:?usage: collect-libs.sh <binary> <lib-dir>}"
 LIBDIR="${2:?usage: collect-libs.sh <binary> <lib-dir>}"
 
+# The main binary may also carry a vendor RPATH; normalize it too.
+python3 "$(dirname "$0")/strip-rpath.py" "$BINARY" 2>/dev/null || true
+
 TARGET_ROOT=/opt/aarch64-nextui-linux-gnu/aarch64-nextui-linux-gnu
 SEARCH_DIRS="$TARGET_ROOT/libc/usr/lib $TARGET_ROOT/lib64 $TARGET_ROOT/lib"
 READELF=${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}readelf
@@ -17,6 +20,7 @@ READELF=${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}readelf
 # pak is independent of firmware library versions.
 DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 "
 
+rm -rf "$LIBDIR"
 mkdir -p "$LIBDIR"
 
 queue="$BINARY"
@@ -49,6 +53,7 @@ while [ -n "$queue" ]; do
 		# Dereference symlinks, store under the soname, strip.
 		cp -L "$src" "$LIBDIR/$needed"
 		${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}strip --strip-unneeded "$LIBDIR/$needed" 2>/dev/null || true
+		python3 "$(dirname "$0")/strip-rpath.py" "$LIBDIR/$needed" || true
 		echo "    bundled $needed"
 		queue="$queue $LIBDIR/$needed"
 	done

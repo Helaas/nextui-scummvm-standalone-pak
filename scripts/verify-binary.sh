@@ -26,8 +26,10 @@ check_common() {
 	f=$1
 	$READELF -h "$f" | grep -q 'Machine:.*AArch64' || fail "$f is not an AArch64 ELF"
 
-	if $READELF -d "$f" | grep -Eq '\((RPATH|RUNPATH)\)'; then
-		fail "$f embeds an RPATH or RUNPATH"
+	# An empty RPATH/RUNPATH (maintained as "" in .dynstr) resolves to nothing
+	# and is harmless; only non-empty search paths are a hard failure.
+	if $READELF -d "$f" | grep -Eq '\((RPATH|RUNPATH)\).*\[[^]]+\]'; then
+		fail "$f embeds a non-empty RPATH or RUNPATH"
 	fi
 
 	highest=$(highest_glibc "$f")
