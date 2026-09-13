@@ -10,8 +10,8 @@ LIBDIR="${2:?usage: verify-binary.sh <binary> <lib-dir> <glibc-ceiling>}"
 GLIBC_CEILING="${3:?usage: verify-binary.sh <binary> <lib-dir> <glibc-ceiling>}"
 READELF=${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}readelf
 
-# Libraries the device firmware provides (GPU drivers + glibc).
-DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 "
+# Libraries the device firmware provides (GPU drivers, glibc, SDL2, ALSA, C++ runtime).
+DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 libSDL2-2.0.so.0 libasound.so.2 libstdc++.so.6 libgcc_s.so.1 "
 
 fail() {
 	echo "Error: $*" >&2
@@ -26,8 +26,10 @@ check_common() {
 	f=$1
 	$READELF -h "$f" | grep -q 'Machine:.*AArch64' || fail "$f is not an AArch64 ELF"
 
-	if $READELF -d "$f" | grep -Eq '\((RPATH|RUNPATH)\)'; then
-		fail "$f embeds an RPATH or RUNPATH"
+	# An empty RPATH/RUNPATH (maintained as "" in .dynstr) resolves to nothing
+	# and is harmless; only non-empty search paths are a hard failure.
+	if $READELF -d "$f" | grep -Eq '\((RPATH|RUNPATH)\).*\[[^]]+\]'; then
+		fail "$f embeds a non-empty RPATH or RUNPATH"
 	fi
 
 	highest=$(highest_glibc "$f")

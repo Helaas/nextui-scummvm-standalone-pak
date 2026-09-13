@@ -24,18 +24,24 @@ Power button **deep sleep** and **shutdown** are provided by
 > [!NOTE]
 > NextUI menu integration does not apply to standalone emulators: no save
 > states from the NextUI menu, no in-game NextUI options. Use ScummVM's own
-> menu (default: press the ScummVM Global Menu button — see Controls) to
+> menu (press **Menu** — see Controls) to
 > save, load, and quit.
 
 ## Supported Platforms
 
-| Platform | Device                   |
-| -------- | ------------------------ |
-| tg5040   | TrimUI Brick / Smart Pro |
+| Platform | Device                                                                 |
+| -------- | ---------------------------------------------------------------------- |
+| tg5040   | TrimUI Brick / Brick Pro / Smart Pro                                   |
+| tg5050   | TrimUI Smart Pro S                                                     |
+| my355    | Miyoo Flip                                                             |
+| h700     | Anbernic H700 devices ([unofficial NextUI port](https://github.com/pvaibhav/NextUI/tree/h700)) |
 
-The binary is compiled with the pinned `ghcr.io/loveretro/tg5040-toolchain`
-image, whose glibc 2.28 sysroot is older than the firmware's, tuned for
-Cortex-A53.
+One binary serves every platform. It is compiled with the pinned
+`ghcr.io/loveretro/tg5040-toolchain` image, whose glibc 2.28 sysroot is older
+than every firmware's, tuned for Cortex-A53 (which also runs on the A55
+devices). SDL2, ALSA, and the C++ runtime are not bundled: each firmware's own
+SDL2 supplies the right video and input backend (mali on tg5040/h700, KMSDRM on
+tg5050/my355), and its GPU driver needs the firmware's libstdc++.
 
 ## Building
 
@@ -62,7 +68,18 @@ make distclean
 ```
 
 `make package` verifies the binary and asserts that `launch.sh`, `pak.json`,
-`bin/scummvm`, and `bin/minui-power-control` sit at the archive root.
+`bin/scummvm`, `bin/minui-power-control`, and `keymaps/default.txt` sit at the
+archive root, and that no SDL2, ALSA, libstdc++, or libgcc_s slipped into
+`lib/`.
+
+The build applies `patches/*.patch` to the ScummVM checkout:
+
+- `0001` lets the POSIX backend read handheld keymap defaults from the file
+  named by `SCUMMVM_KEYMAP_DEFAULTS` (see `keymaps/default.txt`) and config
+  defaults from `SCUMMVM_CONFIG_DEFAULTS` (per device, see `config/brick.txt`).
+- `0002` makes the SDL backend ignore keyboard events when
+  `SCUMMVM_IGNORE_KEYBOARD` is set. The Miyoo Flip reports its buttons both as
+  a gamepad and as keys, which would otherwise trigger two actions per press.
 
 ## Installation
 
@@ -79,7 +96,7 @@ make distclean
    [latest release](https://github.com/Helaas/nextui-scummvm-standalone-pak/releases).
 2. Extract the contents of the archive into
    `Emus/<platform>/SCUMMVMSA.pak/` on your SD card, replacing `<platform>`
-   with `tg5040`.
+   with `tg5040`, `tg5050`, `my355`, or `h700`.
 
    The archive has no enclosing folder, so create `SCUMMVMSA.pak/` first. It
    contains `launch.sh`, `pak.json`, `LICENSE`, `README.md`, `bin/`, `lib/`,
@@ -113,14 +130,53 @@ Saves go to `Saves/SCUMMVMSA/` on the SD card. ScummVM's config lives in
 
 ## Controls
 
-ScummVM's default gamepad mapping applies (d-pad/stick = mouse, A = left
-click, B = right click, Start = ScummVM Global Menu). Everything is
-rebindable per game in ScummVM under **Options… → Controls**.
+Buttons follow their printed labels and NextUI's conventions:
 
-Power button:
+| Button     | Action                                          |
+| ---------- | ----------------------------------------------- |
+| A          | Left click / select in menus                    |
+| B          | Right click / back in menus                     |
+| Y          | Skip cutscene (Esc)                             |
+| X          | Skip line (.)                                   |
+| Menu       | ScummVM menu (save, load, options, quit)        |
+| Start      | The game's own menu (F5)                        |
+| Select     | Virtual keyboard                                |
+| L1 (hold)  | Slow, precise mouse                             |
+| R1         | Enter                                           |
+| L2         | Pause (Space)                                   |
+| L3 / F1    | Middle click                                    |
+| Left stick | Mouse                                           |
+| D-pad      | Arrow keys (menus, keyboard-driven games)       |
+
+On devices without analog sticks (TrimUI Brick; Anbernic RG28XX, RG34XX,
+RG35XX Plus/2024, RG35XX SP, RG SP) the **d-pad moves the mouse** instead. The
+Brick starts at half ScummVM's default pointer speed; change it on any device
+under **Options… → Controls → Pointer Speed**.
+
+A few engines ship their own control schemes (for example Blade Runner,
+Grim Fandango, and The Longest Journey) and keep them, apart from Start
+opening the game menu. Everything is rebindable, globally or per game, in
+ScummVM under **Options… → Keymaps**; your changes override the pak's defaults.
+
+### Typing with the virtual keyboard
+
+1. Press **Select** to open the keyboard (ScummVM also opens it when a game
+   asks for text).
+2. Move the cursor over a key with the left stick (d-pad on stickless
+   devices; hold **L1** for precision) and press **A**. The text appears in
+   the field at the top; **↵** sends Enter and **←** deletes.
+3. Press the green **✓** to send the text to the game, or the red **✗** to
+   cancel.
+
+### Power button
+
+On tg5040, tg5050, and my355:
 
 - **Short press**: deep sleep / wake
 - **Hold 2 s**: shut down (does **not** save — save first!)
+
+minui-power-control does not support the h700 port, so the pak leaves the
+power button alone there: save and quit through the ScummVM menu.
 
 ## Releasing
 

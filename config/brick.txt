@@ -1,0 +1,7 @@
+# Config defaults for the TrimUI Brick, loaded via SCUMMVM_CONFIG_DEFAULTS
+# (launch.sh). Anything changed in ScummVM's options overrides these.
+
+# The d-pad drives the virtual mouse at full deflection, which is too fast on
+# the Brick's panel; halve the pointer speed (0-7, ScummVM default 3). The
+# stickless H700 models feel right at the default.
+kbdmouse_speed=1

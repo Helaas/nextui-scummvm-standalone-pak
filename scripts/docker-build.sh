@@ -19,11 +19,24 @@ sed -e "s|^prefix=.*|prefix=\"$SYSROOT\"|" \
     "$SYSROOT/bin/sdl2-config" > /tmp/sdlfix/sdl2-config
 chmod +x /tmp/sdlfix/sdl2-config
 
+# Apply the pak's ScummVM patches once; a patch that already reverses
+# cleanly is in place from an earlier build of this checkout.
+for patch in /workspace/patches/*.patch; do
+	[ -e "$patch" ] || continue
+	if git apply --reverse --check "$patch" 2>/dev/null; then
+		echo "==> Patch already applied: $(basename "$patch")"
+	else
+		echo "==> Applying $(basename "$patch")"
+		git apply "$patch"
+	fi
+done
+
 export CXXFLAGS="-mcpu=cortex-a53 -mtune=cortex-a53"
 export CFLAGS="-mcpu=cortex-a53 -mtune=cortex-a53"
 
 ./configure \
 	--host=aarch64-nextui-linux-gnu \
+	--prefix=/usr \
 	--with-sdl-prefix=/tmp/sdlfix \
 	--enable-release-mode \
 	--enable-optimizations \

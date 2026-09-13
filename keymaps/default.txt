@@ -1,0 +1,24 @@
+# SCUMMVMSA default controls, loaded via SCUMMVM_KEYMAP_DEFAULTS (launch.sh).
+# Anything rebound in ScummVM under Options > Keymaps overrides these.
+#
+# Format: <keymap> <action> [<input>...]   An action with no inputs is unbound.
+# Listing an action replaces all of its default inputs, keyboard ones included.
+# Inputs assume launch.sh's label-correct SDL mapping: JOY_A is the button
+# printed A, JOY_GUIDE is Menu, JOY_BACK is Select, JOY_LEFT_STICK is L3/F1.
+
+# Global: active everywhere unless a game or GUI keymap claims the input
+global MENU JOY_GUIDE C+F5
+global VIRT JOY_BACK C+F7
+global VMOUSESLOW JOY_LEFT_SHOULDER
+
+# GUI: launcher, options dialogs, virtual keyboard
+gui CLOS JOY_B ESCAPE
+
+# Default game keymap (SCUMM, AGI, SCI and every engine without its own)
+engine-default MENU JOY_START F5
+engine-default RETURN JOY_RIGHT_SHOULDER RETURN
+engine-default PAUSE JOY_LEFT_TRIGGER SPACE
+engine-default MCLK JOY_LEFT_STICK MOUSE_MIDDLE
+
+# Engines with their own keymaps: Start opens the game menu there too
+standard-actions MENU JOY_START

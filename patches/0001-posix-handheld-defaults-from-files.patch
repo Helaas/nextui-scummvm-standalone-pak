@@ -1,0 +1,131 @@
+diff --git a/backends/platform/sdl/posix/posix.cpp b/backends/platform/sdl/posix/posix.cpp
+index f2330f7f..6c7b3c3d 100644
+--- a/backends/platform/sdl/posix/posix.cpp
++++ b/backends/platform/sdl/posix/posix.cpp
+@@ -43,7 +43,12 @@
+ #include "backends/audiocd/linux/linux-audiocd.h"
+ #endif
+ 
++#include "backends/keymapper/keymapper-defaults.h"
++#include "common/config-manager.h"
++#include "common/fs.h"
++#include "common/stream.h"
+ #include "common/textconsole.h"
++#include "common/tokenizer.h"
+ 
+ #include <stdlib.h>
+ #include <errno.h>
+@@ -60,6 +65,42 @@
+ #endif
+ extern char **environ;
+ 
++// Config defaults for handheld builds, read from the file named by
++// SCUMMVM_CONFIG_DEFAULTS: one "key=value" per line. They only replace
++// built-in defaults; values saved to scummvm.ini still take precedence.
++static void registerConfigDefaultsFromFile() {
++	const char *path = getenv("SCUMMVM_CONFIG_DEFAULTS");
++	if (!path || !*path)
++		return;
++
++	Common::FSNode node(Common::Path(path, Common::Path::kNativeSeparator));
++	Common::SeekableReadStream *stream = node.createReadStream();
++	if (!stream) {
++		warning("Cannot read config defaults from '%s'", path);
++		return;
++	}
++
++	while (!stream->eos() && !stream->err()) {
++		Common::String line = stream->readLine();
++		line.trim();
++		if (line.empty() || line.firstChar() == '#')
++			continue;
++
++		size_t eq = line.findFirstOf('=');
++		if (eq == Common::String::npos || eq == 0) {
++			warning("Ignoring malformed config default '%s'", line.c_str());
++			continue;
++		}
++
++		Common::String key(line.c_str(), eq);
++		Common::String value(line.c_str() + eq + 1);
++		key.trim();
++		value.trim();
++		ConfMan.registerDefault(key, value);
++	}
++	delete stream;
++}
++
+ void OSystem_POSIX::init() {
+ 	// Initialze File System Factory
+ 	_fsFactory = new POSIXFilesystemFactory();
+@@ -91,6 +132,9 @@ void OSystem_POSIX::initBackend() {
+ 	// Invoke parent implementation of this method
+ 	OSystem_SDL::initBackend();
+ 
++	// After the parent, so these override defaults the backend just registered
++	registerConfigDefaultsFromFile();
++
+ #if defined(USE_TASKBAR) && defined(USE_UNITY)
+ 	// Register the taskbar manager as an event source (this is necessary for the glib event loop to be run)
+ 	_eventManager->getEventDispatcher()->registerSource((UnityTaskbarManager *)_taskbarManager, false);
+@@ -481,3 +525,47 @@ AudioCDManager *OSystem_POSIX::createAudioCDManager() {
+ }
+ 
+ #endif
++
++Common::KeymapperDefaultBindings *OSystem_POSIX::getKeymapperDefaultBindings() {
++	// Default bindings for handheld builds, read from the file named by
++	// SCUMMVM_KEYMAP_DEFAULTS. Each line is "<keymap> <action> [<input>...]";
++	// an action listed without inputs is unbound by default. Mappings saved
++	// from the keymapper GUI still take precedence.
++	const char *path = getenv("SCUMMVM_KEYMAP_DEFAULTS");
++	if (!path || !*path)
++		return nullptr;
++
++	Common::FSNode node(Common::Path(path, Common::Path::kNativeSeparator));
++	Common::SeekableReadStream *stream = node.createReadStream();
++	if (!stream) {
++		warning("Cannot read keymap defaults from '%s'", path);
++		return nullptr;
++	}
++
++	// The keymapper owns the result and deletes it when inputs are re-registered.
++	Common::KeymapperDefaultBindings *bindings = new Common::KeymapperDefaultBindings();
++	while (!stream->eos() && !stream->err()) {
++		Common::String line = stream->readLine();
++		line.trim();
++		if (line.empty() || line.firstChar() == '#')
++			continue;
++
++		Common::StringTokenizer tokens(line, " \t");
++		Common::String keymapId = tokens.nextToken();
++		Common::String actionId = tokens.nextToken();
++		if (actionId.empty()) {
++			warning("Ignoring malformed keymap default '%s'", line.c_str());
++			continue;
++		}
++
++		bindings->setDefaultBinding(keymapId, actionId, "");
++		while (!tokens.empty()) {
++			Common::String input = tokens.nextToken();
++			if (!input.empty())
++				bindings->addDefaultBinding(keymapId, actionId, input);
++		}
++	}
++	delete stream;
++
++	return bindings;
++}
+diff --git a/backends/platform/sdl/posix/posix.h b/backends/platform/sdl/posix/posix.h
+index a86e3196..1c49e2bd 100644
+--- a/backends/platform/sdl/posix/posix.h
++++ b/backends/platform/sdl/posix/posix.h
+@@ -35,6 +35,8 @@ public:
+ 
+ 	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override;
+ 
++	Common::KeymapperDefaultBindings *getKeymapperDefaultBindings() override;
++
+ 	// Default paths
+ 	Common::Path getDefaultIconsPath() override;
+ 	Common::Path getDefaultDLCsPath() override;
