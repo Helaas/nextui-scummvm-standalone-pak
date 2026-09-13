@@ -1,0 +1,28 @@
+diff --git a/backends/events/sdl/sdl2-events.cpp b/backends/events/sdl/sdl2-events.cpp
+index 338c1419..cdc6af8f 100644
+--- a/backends/events/sdl/sdl2-events.cpp
++++ b/backends/events/sdl/sdl2-events.cpp
+@@ -19,6 +19,8 @@
+  *
+  */
+ 
++#define FORBIDDEN_SYMBOL_EXCEPTION_getenv
++
+ #include "common/scummsys.h"
+ 
+ #if defined(SDL_BACKEND)
+@@ -707,6 +709,14 @@ bool SdlEventSource::pollEvent(Common::Event &event) {
+ }
+ 
+ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
++	// Handheld builds: some firmwares report the built-in buttons both as a
++	// gamepad and as keyboard keys (Space, Enter, Escape, ...), so every press
++	// would trigger two actions. SCUMMVM_IGNORE_KEYBOARD drops the key copy.
++	static const char *ignoreKeyboardEnv = getenv("SCUMMVM_IGNORE_KEYBOARD");
++	static const bool ignoreKeyboard = ignoreKeyboardEnv && *ignoreKeyboardEnv && *ignoreKeyboardEnv != '0';
++	if (ignoreKeyboard && (ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP || ev.type == SDL_TEXTINPUT))
++		return false;
++
+ 	switch (ev.type) {
+ 	case SDL_KEYDOWN:
+ 		return handleKeyDown(ev, event);

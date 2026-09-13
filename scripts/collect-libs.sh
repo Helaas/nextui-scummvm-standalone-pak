@@ -18,8 +18,12 @@ READELF=${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}readelf
 # Provided by the device firmware; never bundle these. GPU drivers and glibc
 # are per device, and SDL2 plus ALSA carry each platform's video, input and
 # audio backends (mali on tg5040/h700, KMSDRM on tg5050/my355, NextUI's H700
-# pad patch). Everything else (codecs, libstdc++, libgcc_s, ...) is bundled.
-DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 libSDL2-2.0.so.0 libasound.so.2 "
+# pad patch). The C++ runtime must be the firmware's too: a bundled gcc 8.3
+# libstdc++ shadows the newer one tg5050's libmali needs (GLIBCXX_3.4.26), so
+# KMSDRM fails to load and SDL falls back to an offscreen (black) display.
+# ScummVM only needs the base GLIBCXX_3.4/CXXABI_1.3 versions. Everything else
+# (codecs) is bundled.
+DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 libSDL2-2.0.so.0 libasound.so.2 libstdc++.so.6 libgcc_s.so.1 "
 
 rm -rf "$LIBDIR"
 mkdir -p "$LIBDIR"

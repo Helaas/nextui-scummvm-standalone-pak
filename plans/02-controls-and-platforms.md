@@ -6,9 +6,13 @@
   platform (`launch.sh`), d-pad-as-stick on stickless devices, and handheld
   keymap defaults (`keymaps/default.txt`) loaded through
   `patches/0001-posix-keymap-defaults-from-file.patch`.
-- One binary now targets tg5040, tg5050, my355 and h700; SDL2 and ALSA come
-  from each firmware instead of `lib/`. `make package` passes and asserts
-  neither library is bundled.
+- One binary now targets tg5040, tg5050, my355 and h700; SDL2, ALSA,
+  libstdc++ and libgcc_s come from each firmware instead of `lib/`.
+  `make package` passes and asserts none of them is bundled.
+- The Brick loads `config/brick.txt` (`kbdmouse_speed=1`) through
+  `SCUMMVM_CONFIG_DEFAULTS`, handled by the same patch; `launch.sh` picks
+  `config/$DEVICE.txt` when present. Hands-on: the d-pad mouse was too fast on
+  the Brick at the default speed but right on the H700 RG SP.
 - Verification: see [Verification](#verification). Remaining items are listed
   under [Open items](#open-items).
 
@@ -77,11 +81,26 @@ on the Brick firmware but not on the Smart Pro's, so the SDL mapping is used.
 | SDL NextUI loads | `/usr/trimui/lib` 2.30.8 (mali) | same | `/usr/lib` 2.32.6 (KMSDRM) | `/usr/lib` 2.0.22 (KMSDRM) | `.system/h700/lib` 2.28.5 (mali) |
 | Power key | event1 | event1 | event2 | event2 | event0 |
 
+- tg5050 launched games to a black screen with the first build: the bundled
+  gcc 8.3 libstdc++ (up to GLIBCXX_3.4.25) shadowed the firmware's, tg5050's
+  `libmali.so.0` needs GLIBCXX_3.4.26, so `libgbm`/`libEGL` failed to dlopen,
+  SDL reported "KMSDRM not available" and fell back to `offscreen`. A probe
+  confirmed KMSDRM initializes (1280x720) once `lib/` no longer shadows the
+  firmware C++ runtime. ScummVM itself only needs GLIBCXX_3.4/CXXABI_1.3, and
+  every firmware ships libstdc++.so.6 and libgcc_s.so.1.
 - The bundled tg5040-sysroot SDL 2.26.1 only has the `mali` video driver, so it
   cannot drive tg5050/my355. All 149 SDL symbols ScummVM imports are exported
   by every firmware SDL above, including my355's 2.0.22.
 - my355 NextUI reads controls as keyboard scancodes, but `miyoo_inputd` also
   exposes `MIYOO Player1` with the same button bitmap as the TrimUI pad.
+  ScummVM's SDL reads both, so each press arrived twice: `gpio-keys-polled`
+  advertises ESC, BACKSPACE, TAB, ENTER, LCTRL, LSHIFT, RSHIFT, LALT, SPACE,
+  RCTRL, RALT, the arrows and PGUP/PGDN, which ScummVM's keymaps also bind
+  (Space = pause, Enter = confirm, Escape = skip/close, ...). Hands-on this
+  showed up as wrong keybinds. `patches/0002-sdl-ignore-keyboard-env.patch`
+  drops SDL keyboard events when `SCUMMVM_IGNORE_KEYBOARD` is set, which
+  `launch.sh` does on my355 only (the virtual keyboard is mouse-driven and
+  keeps working).
 - H700 stick count per `DEVICE` follows the h700 NextUI `platform.c`:
   two sticks on rg40xxh, rgcubexx, rg34xxsp, rg35xxh, rg35xxpro; one on
   rg40xxv; none otherwise.
@@ -103,6 +122,7 @@ on the Brick firmware but not on the Smart Pro's, so the SDL mapping is used.
 | Brick: injected Select opens the virtual keyboard; injected A on a key types it into the text field | Pass (framebuffer screenshots) |
 | h700 (RG SP): starts beside NativeSSH, `Using game controller: ANBERNIC-keys`, NextUI's SDL 2.28.5, renders the launcher at 720x480, power helper skipped | Pass |
 | h700: injected d-pad hat moves the cursor | Likely (cursor away from its top-left start in the post-input screenshot; the "before" capture failed) |
+| Hands-on with Freddi Fish (Dutch) after the runtime and input fixes: tg5050 renders the game, the Brick's pointer speed is right, my355 buttons trigger single actions, h700 d-pad mouse feels right | Pass (reported by the maintainer) |
 
 Test method: packs were launched by writing `/tmp/next` and killing
 `nextui.elf`, so NextUI's own loop supplied the environment (Brick, tg5050), or
@@ -116,7 +136,6 @@ this method; launch from the NextUI menu instead.
 
 ## Open items
 
-- Hands-on check with a game on each platform (in-game Start/Menu/R1/L2).
 - h700 power button: no sleep/shutdown while ScummVM runs.
 - Brick Pro L4/R4 and second Menu key are beyond SDL's X360 mapping and stay
   unused.

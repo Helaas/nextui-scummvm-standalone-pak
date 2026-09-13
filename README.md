@@ -39,8 +39,9 @@ Power button **deep sleep** and **shutdown** are provided by
 One binary serves every platform. It is compiled with the pinned
 `ghcr.io/loveretro/tg5040-toolchain` image, whose glibc 2.28 sysroot is older
 than every firmware's, tuned for Cortex-A53 (which also runs on the A55
-devices). SDL2 and ALSA are not bundled: each firmware's own SDL2 supplies the
-right video and input backend (mali on tg5040/h700, KMSDRM on tg5050/my355).
+devices). SDL2, ALSA, and the C++ runtime are not bundled: each firmware's own
+SDL2 supplies the right video and input backend (mali on tg5040/h700, KMSDRM on
+tg5050/my355), and its GPU driver needs the firmware's libstdc++.
 
 ## Building
 
@@ -68,11 +69,17 @@ make distclean
 
 `make package` verifies the binary and asserts that `launch.sh`, `pak.json`,
 `bin/scummvm`, `bin/minui-power-control`, and `keymaps/default.txt` sit at the
-archive root, and that no SDL2/ALSA library slipped into `lib/`.
+archive root, and that no SDL2, ALSA, libstdc++, or libgcc_s slipped into
+`lib/`.
 
-The build applies `patches/*.patch` to the ScummVM checkout. The one patch so
-far lets the POSIX backend read handheld keymap defaults from the file named
-by `SCUMMVM_KEYMAP_DEFAULTS` (see `keymaps/default.txt`).
+The build applies `patches/*.patch` to the ScummVM checkout:
+
+- `0001` lets the POSIX backend read handheld keymap defaults from the file
+  named by `SCUMMVM_KEYMAP_DEFAULTS` (see `keymaps/default.txt`) and config
+  defaults from `SCUMMVM_CONFIG_DEFAULTS` (per device, see `config/brick.txt`).
+- `0002` makes the SDL backend ignore keyboard events when
+  `SCUMMVM_IGNORE_KEYBOARD` is set. The Miyoo Flip reports its buttons both as
+  a gamepad and as keys, which would otherwise trigger two actions per press.
 
 ## Installation
 
@@ -142,7 +149,9 @@ Buttons follow their printed labels and NextUI's conventions:
 | D-pad      | Arrow keys (menus, keyboard-driven games)       |
 
 On devices without analog sticks (TrimUI Brick; Anbernic RG28XX, RG34XX,
-RG35XX Plus/2024, RG35XX SP, RG SP) the **d-pad moves the mouse** instead.
+RG35XX Plus/2024, RG35XX SP, RG SP) the **d-pad moves the mouse** instead. The
+Brick starts at half ScummVM's default pointer speed; change it on any device
+under **Options… → Controls → Pointer Speed**.
 
 A few engines ship their own control schemes (for example Blade Runner,
 Grim Fandango, and The Longest Journey) and keep them, apart from Start

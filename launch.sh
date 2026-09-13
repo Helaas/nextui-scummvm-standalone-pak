@@ -18,10 +18,11 @@ mkdir -p "$USERDATA_DIR" "$SAVES_PATH/$EMU_TAG"
 
 export PATH="$PAK_DIR/bin:$PATH"
 export HOME="$USERDATA_DIR"
-# lib/ holds codecs and the C++ runtime only. SDL2 and ALSA come from the
-# firmware (already on NextUI's library path), because each platform's SDL
-# carries its own video and input backend: mali on tg5040/h700, KMSDRM on
-# tg5050/my355, and NextUI's pad patch on h700.
+# lib/ holds codecs only. SDL2, ALSA and the C++ runtime come from the
+# firmware (already on NextUI's library path): each platform's SDL carries its
+# own video and input backend (mali on tg5040/h700, KMSDRM on tg5050/my355,
+# NextUI's pad patch on h700), and its GPU driver needs the firmware's
+# libstdc++ (tg5050's libmali fails to load against an older bundled one).
 export LD_LIBRARY_PATH="$PAK_DIR/lib:$LD_LIBRARY_PATH"
 [ "$PLATFORM" = "tg5040" ] && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/trimui/lib"
 
@@ -38,7 +39,13 @@ case "$PLATFORM" in
 	tg5040 | tg5050 | my355)
 		# TRIMUI/MIYOO Player1 (xpad IDs 045e:028e): NextUI's JOY_A=1 B=0 X=3 Y=2
 		PAD_NAME="TRIMUI Player1"
-		[ "$PLATFORM" = "my355" ] && PAD_NAME="MIYOO Player1"
+		if [ "$PLATFORM" = "my355" ]; then
+			PAD_NAME="MIYOO Player1"
+			# The Flip's buttons also arrive as keys from gpio-keys-polled (A is
+			# Space, Start Enter, Menu Escape, ...); ignore them so a press maps
+			# to one action (handled by the pak's ScummVM patch).
+			export SCUMMVM_IGNORE_KEYBOARD=1
+		fi
 		PAD="030000005e0400008e02000014010000,$PAD_NAME,a:b1,b:b0,x:b3,y:b2,back:b6,start:b7,guide:b8,leftshoulder:b4,rightshoulder:b5,lefttrigger:a2,righttrigger:a5,leftstick:b9,rightstick:b10,"
 		if [ "$DEVICE" = "brick" ]; then
 			# No sticks; b9/b10 are the F1/F2 keys
@@ -72,6 +79,11 @@ fi
 # Handheld keymap defaults (Menu = ScummVM menu, Start = game menu, ...),
 # loaded by the pak's ScummVM patch; per-game remaps still override them.
 export SCUMMVM_KEYMAP_DEFAULTS="$PAK_DIR/keymaps/default.txt"
+# Per-device config defaults (ScummVM options still override them), e.g. a
+# slower pointer on the Brick, where the d-pad mouse is too fast.
+if [ -f "$PAK_DIR/config/$DEVICE.txt" ]; then
+	export SCUMMVM_CONFIG_DEFAULTS="$PAK_DIR/config/$DEVICE.txt"
+fi
 
 # ── Resolve the ROM to a ScummVM game directory + target ─────────────────────
 # NextUI hands us a file from /Roms/<folder> (<TAG>)/. Community convention:
