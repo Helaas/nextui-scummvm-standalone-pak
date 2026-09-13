@@ -150,6 +150,7 @@ package: deps libs
 	@grep -q '"release_filename": "$(RELEASE_FILENAME)"' pak.json || \
 		{ echo "Error: pak.json release_filename is not $(RELEASE_FILENAME)."; exit 1; }
 	@echo "==> Assembling $(PAK_NAME).pak"
+	@rm -rf "$(PAK_DIR)/bin" "$(PAK_DIR)/share/scummvm"
 	@mkdir -p "$(PAK_DIR)/bin" "$(PAK_DIR)/share" "$(DIST_DIR)"
 	@cp launch.sh pak.json LICENSE README.md "$(PAK_DIR)/"
 	@cp "$(STAGE_DIR)/usr/bin/scummvm" "$(PAK_DIR)/bin/scummvm"
