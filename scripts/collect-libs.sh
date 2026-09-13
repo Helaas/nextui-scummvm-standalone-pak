@@ -15,10 +15,11 @@ TARGET_ROOT=/opt/aarch64-nextui-linux-gnu/aarch64-nextui-linux-gnu
 SEARCH_DIRS="$TARGET_ROOT/libc/usr/lib $TARGET_ROOT/lib64 $TARGET_ROOT/lib"
 READELF=${CROSS_COMPILE:-aarch64-nextui-linux-gnu-}readelf
 
-# Provided by the device firmware (GPU drivers + glibc); never bundle these.
-# Everything else (SDL2, codecs, libstdc++, libgcc_s, ...) is bundled so the
-# pak is independent of firmware library versions.
-DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 "
+# Provided by the device firmware; never bundle these. GPU drivers and glibc
+# are per device, and SDL2 plus ALSA carry each platform's video, input and
+# audio backends (mali on tg5040/h700, KMSDRM on tg5050/my355, NextUI's H700
+# pad patch). Everything else (codecs, libstdc++, libgcc_s, ...) is bundled.
+DEVICE_LIBS=" ld-linux-aarch64.so.1 libc.so.6 libpthread.so.0 libdl.so.2 libm.so.6 librt.so.1 libEGL.so.1 libGLESv2.so.2 libGLES_CM.so.1 libMali.so libmali.so libUMP.so.3 libIMGegl.so libPVROCL.so.1 libSDL2-2.0.so.0 libasound.so.2 "
 
 rm -rf "$LIBDIR"
 mkdir -p "$LIBDIR"

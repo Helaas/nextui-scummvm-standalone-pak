@@ -26,8 +26,10 @@ PAK_DIR   := $(BUILD_DIR)/$(PAK_NAME).pak
 CACHE_DIR := .cache/scummvm
 SENTINEL  := .cache/.scummvm-$(SCUMMVM_HASH)
 
-# One pinned image: gcc 8.3, glibc 2.28 sysroot (older than every supported
-# firmware), cortex-a53 output runs on both A53 and A55 devices.
+# One pinned image builds for tg5040, tg5050, my355 and h700: gcc 8.3, glibc
+# 2.28 sysroot (older than every supported firmware), cortex-a53 output runs on
+# both A53 (tg5040, h700) and A55 (tg5050, my355) devices. SDL2 is linked
+# against the sysroot's 2.26.1 but loaded from each firmware at runtime.
 TOOLCHAIN     := ghcr.io/loveretro/tg5040-toolchain@sha256:f131c6af64029a8723d0ce8d3c2682642f5f091b04714f6beedda9bec18477ab
 CPU_FLAGS     := -mcpu=cortex-a53 -mtune=cortex-a53
 GLIBC_CEILING := 2.28
@@ -65,7 +67,7 @@ help:
 	@echo "  make package    Build ScummVM and create $(RELEASE_FILENAME)"
 	@echo "  make build      Cross-compile ScummVM inside the pinned toolchain image"
 	@echo "  make verify     Check the binary's architecture, RPATH, and glibc ceiling"
-	@echo "  make deploy     Push the assembled pak to the device over adb"
+	@echo "  make deploy     Push the assembled pak to a tg5040 device over adb"
 	@echo "  make checkout   Clone/update ScummVM source"
 	@echo "  make deps       Download minui-power-control (pinned, sha256-checked)"
 	@echo "  make clean      Remove build artifacts"
@@ -150,19 +152,22 @@ package: deps libs
 	@grep -q '"release_filename": "$(RELEASE_FILENAME)"' pak.json || \
 		{ echo "Error: pak.json release_filename is not $(RELEASE_FILENAME)."; exit 1; }
 	@echo "==> Assembling $(PAK_NAME).pak"
-	@rm -rf "$(PAK_DIR)/bin" "$(PAK_DIR)/share/scummvm"
+	@rm -rf "$(PAK_DIR)/bin" "$(PAK_DIR)/share/scummvm" "$(PAK_DIR)/keymaps"
 	@mkdir -p "$(PAK_DIR)/bin" "$(PAK_DIR)/share" "$(DIST_DIR)"
 	@cp launch.sh pak.json LICENSE README.md "$(PAK_DIR)/"
 	@cp "$(STAGE_DIR)/usr/bin/scummvm" "$(PAK_DIR)/bin/scummvm"
 	@cp "$(MPC_BIN)" "$(PAK_DIR)/bin/minui-power-control"
 	@cp -R "$(STAGE_DIR)/usr/share/scummvm" "$(PAK_DIR)/share/scummvm"
+	@cp -R keymaps "$(PAK_DIR)/keymaps"
 	@chmod 755 "$(PAK_DIR)/launch.sh" "$(PAK_DIR)/bin/scummvm" "$(PAK_DIR)/bin/minui-power-control"
 	@rm -f "$(DIST_DIR)/$(RELEASE_FILENAME)"
 	@cd "$(PAK_DIR)" && zip -9 -q -r "$(CURDIR)/$(DIST_DIR)/$(RELEASE_FILENAME)" . -x '.*'
-	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control; do \
+	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control keymaps/default.txt; do \
 		unzip -Z1 "$(DIST_DIR)/$(RELEASE_FILENAME)" | grep -qx "$$f" || \
 			{ echo "Error: $$f is missing from the archive root."; exit 1; }; \
 	done
+	@unzip -Z1 "$(DIST_DIR)/$(RELEASE_FILENAME)" | grep -Eq '^lib/lib(SDL2-2\.0|asound)\.so' && \
+		{ echo "Error: SDL2/ALSA must come from the firmware, not the pak's lib/."; exit 1; } || true
 	@unzip -p "$(DIST_DIR)/$(RELEASE_FILENAME)" bin/scummvm | cmp -s - "$(STAGE_DIR)/usr/bin/scummvm" || \
 		{ echo "Error: archived binary differs from $(STAGE_DIR)/usr/bin/scummvm."; exit 1; }
 	@echo "==> Done: $(DIST_DIR)/$(RELEASE_FILENAME)"

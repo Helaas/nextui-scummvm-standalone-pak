@@ -1,7 +1,7 @@
 name: Build
 
 # Builds standalone ScummVM and packages SCUMMVMSA.pak.zip, the archive
-# Pak Store installs on tg5040 devices.
+# Pak Store installs on tg5040, tg5050, my355, and h700 devices.
 on:
   pull_request:
   workflow_dispatch:
