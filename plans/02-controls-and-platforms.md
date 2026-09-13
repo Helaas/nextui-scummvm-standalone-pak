@@ -105,8 +105,28 @@ on the Brick firmware but not on the Smart Pro's, so the SDL mapping is used.
   two sticks on rg40xxh, rgcubexx, rg34xxsp, rg35xxh, rg35xxpro; one on
   rg40xxv; none otherwise.
 - minui-power-control 3.0.0 picks its input node from `$PLATFORM` (event2 on
-  tg5050/my355, event1 otherwise), which is the pad on h700, so the pak does
-  not start it there.
+  tg5050/my355, event1 otherwise), which is the pad on h700 (upstream main is
+  unchanged). Its suspend/shutdown scripts are generic NextUI paths
+  (`$SYSTEM_PATH/bin/suspend`; `/tmp/poweroff` + terminate the pak), but the Go
+  handler runs from its own extracted `arm64/` dir, so it cannot be overridden
+  from the pak. On h700 the pak runs `bin/power-button` (`src/power-button.c`,
+  built with the same toolchain) instead: it opens the input device whose
+  EV_KEY bits include KEY_POWER (`axp2202-pek`, event0 on the RG SP), treats a
+  release under 2 s as suspend (SIGSTOP the emulator, run NextUI's suspend
+  script, which returns after wake, SIGCONT, 1 s cooldown) and a 2 s hold as
+  shutdown (`/tmp/poweroff`, SIGTERM the emulator; the h700 launch loop then
+  runs `poweroff_next`).
+- Hands-on, sleep/wake and shutdown worked on h700 but audio stayed silent
+  after wake: the log showed `snd_pcm_recover` treating the stopped stream as
+  an underrun. NextUI's h700 `PWR_enterSleep` closes the audio device before
+  sleeping for the same reason. `patches/0003-sdl-audio-suspend-signals.patch`
+  makes SIGUSR1/SIGUSR2 call `MixerManager::suspendAudio()`/`resumeAudio()`
+  (flagged by the handler, run from `SdlEventSource::pollEvent`) when
+  `SCUMMVM_AUDIO_SIGNALS` is set. The helper sends SIGUSR1, waits (up to 2 s)
+  until ScummVM no longer holds `/dev/snd/pcmC*p`, then SIGSTOP + suspend,
+  SIGCONT + SIGUSR2 after wake. It also runs the suspend script with
+  `NEXTUI_LD_LIBRARY_PATH`, since its resume hooks restart bluealsa, which had
+  picked up the pak's bundled libz.
 
 ## Verification
 
@@ -122,7 +142,10 @@ on the Brick firmware but not on the Smart Pro's, so the SDL mapping is used.
 | Brick: injected Select opens the virtual keyboard; injected A on a key types it into the text field | Pass (framebuffer screenshots) |
 | h700 (RG SP): starts beside NativeSSH, `Using game controller: ANBERNIC-keys`, NextUI's SDL 2.28.5, renders the launcher at 720x480, power helper skipped | Pass |
 | h700: injected d-pad hat moves the cursor | Likely (cursor away from its top-left start in the post-input screenshot; the "before" capture failed) |
+| h700: `power-button` dry run with injected KEY_POWER on event0: 300 ms press logs suspend, 2.6 s hold logs shutdown, helper exits with the emulator, no `/tmp/poweroff` created | Pass |
 | Hands-on with Freddi Fish (Dutch) after the runtime and input fixes: tg5050 renders the game, the Brick's pointer speed is right, my355 buttons trigger single actions, h700 d-pad mouse feels right | Pass (reported by the maintainer) |
+| h700: real power-button sleep/wake with patch 0003, audio returns | Pass (2026-09-13 maintainer confirmation; fresh log shows successful kernel suspend/resume, PCM reopened, no audio-handshake warning or pak-libz warning from bluealsa) |
+| tg5040 Smart Pro: same candidate, picture/audio, controls, virtual keyboard and power-button sleep/wake | Pass (2026-09-13 maintainer confirmation; firmware SDL2/ALSA/C++ runtime loaded, minui-power-control on event1, h700 audio signals disabled). See [device verification](04-device-verification.md). |
 
 Test method: packs were launched by writing `/tmp/next` and killing
 `nextui.elf`, so NextUI's own loop supplied the environment (Brick, tg5050), or
@@ -136,7 +159,8 @@ this method; launch from the NextUI menu instead.
 
 ## Open items
 
-- h700 power button: no sleep/shutdown while ScummVM runs.
+- RG SP brightness flicker in Game Boy and ScummVM after the smoke test;
+  cause unresolved. See [follow-up investigation](04-device-verification.md#follow-up-rg-sp-display-flicker-remains-unresolved).
 - Brick Pro L4/R4 and second Menu key are beyond SDL's X360 mapping and stay
   unused.
 - rg28xx (rotated panel) is untested.

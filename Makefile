@@ -22,6 +22,7 @@ RELEASE_FILENAME := $(PAK_NAME).pak.zip
 BUILD_DIR := build
 DIST_DIR  := $(BUILD_DIR)/release
 STAGE_DIR := $(BUILD_DIR)/stage
+HELPER_DIR := $(BUILD_DIR)/helpers
 PAK_DIR   := $(BUILD_DIR)/$(PAK_NAME).pak
 CACHE_DIR := .cache/scummvm
 SENTINEL  := .cache/.scummvm-$(SCUMMVM_HASH)
@@ -56,7 +57,7 @@ JOBS := $$(nproc)
 # Phony targets
 ###########################################################
 
-.PHONY: all checkout deps build libs verify package deploy clean distclean help
+.PHONY: all checkout deps build helpers libs verify package deploy clean distclean help
 
 all: package
 
@@ -66,6 +67,7 @@ help:
 	@echo "Targets:"
 	@echo "  make package    Build ScummVM and create $(RELEASE_FILENAME)"
 	@echo "  make build      Cross-compile ScummVM inside the pinned toolchain image"
+	@echo "  make helpers    Cross-compile the pak's power-button helper (h700)"
 	@echo "  make verify     Check the binary's architecture, RPATH, and glibc ceiling"
 	@echo "  make deploy     Push the assembled pak to a tg5040 device over adb"
 	@echo "  make checkout   Clone/update ScummVM source"
@@ -118,6 +120,21 @@ build: $(SENTINEL)
 		{ echo "Error: $(STAGE_DIR)/usr/bin/scummvm missing after build."; exit 1; }
 
 ###########################################################
+# Helpers — power-button for platforms minui-power-control does not cover
+###########################################################
+
+helpers: $(HELPER_DIR)/power-button
+
+$(HELPER_DIR)/power-button: src/power-button.c
+	@echo "==> Building power-button helper"
+	@mkdir -p $(HELPER_DIR)
+	docker run --rm \
+		-v "$(CURDIR)":/workspace \
+		-w /workspace \
+		$(TOOLCHAIN) \
+		/bin/sh -c 'aarch64-nextui-linux-gnu-gcc $(CPU_FLAGS) -O2 -Wall -Wextra -Werror -o $@ src/power-button.c && aarch64-nextui-linux-gnu-strip $@'
+
+###########################################################
 # Shared library collection + verification
 ###########################################################
 
@@ -142,12 +159,20 @@ verify:
 		$(TOOLCHAIN) \
 		/bin/sh scripts/verify-binary.sh \
 			"$(STAGE_DIR)/usr/bin/scummvm" "$(PAK_DIR)/lib" $(GLIBC_CEILING)
+	@test -f "$(HELPER_DIR)/power-button" || \
+		{ echo "Error: $(HELPER_DIR)/power-button is missing; run make helpers."; exit 1; }
+	@docker run --rm \
+		-v "$(CURDIR)":/workspace \
+		-w /workspace \
+		$(TOOLCHAIN) \
+		/bin/sh scripts/verify-binary.sh \
+			"$(HELPER_DIR)/power-button" "$(PAK_DIR)/lib" $(GLIBC_CEILING)
 
 ###########################################################
 # Packaging — one Pak Store archive, contents at its root
 ###########################################################
 
-package: deps libs
+package: deps libs helpers
 	@$(MAKE) --no-print-directory verify
 	@grep -q '"release_filename": "$(RELEASE_FILENAME)"' pak.json || \
 		{ echo "Error: pak.json release_filename is not $(RELEASE_FILENAME)."; exit 1; }
@@ -157,13 +182,14 @@ package: deps libs
 	@cp launch.sh pak.json LICENSE README.md "$(PAK_DIR)/"
 	@cp "$(STAGE_DIR)/usr/bin/scummvm" "$(PAK_DIR)/bin/scummvm"
 	@cp "$(MPC_BIN)" "$(PAK_DIR)/bin/minui-power-control"
+	@cp "$(HELPER_DIR)/power-button" "$(PAK_DIR)/bin/power-button"
 	@cp -R "$(STAGE_DIR)/usr/share/scummvm" "$(PAK_DIR)/share/scummvm"
 	@cp -R keymaps "$(PAK_DIR)/keymaps"
 	@cp -R config "$(PAK_DIR)/config"
-	@chmod 755 "$(PAK_DIR)/launch.sh" "$(PAK_DIR)/bin/scummvm" "$(PAK_DIR)/bin/minui-power-control"
+	@chmod 755 "$(PAK_DIR)/launch.sh" "$(PAK_DIR)/bin/scummvm" "$(PAK_DIR)/bin/minui-power-control" "$(PAK_DIR)/bin/power-button"
 	@rm -f "$(DIST_DIR)/$(RELEASE_FILENAME)"
 	@cd "$(PAK_DIR)" && zip -9 -q -r "$(CURDIR)/$(DIST_DIR)/$(RELEASE_FILENAME)" . -x '.*'
-	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control keymaps/default.txt config/brick.txt; do \
+	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control bin/power-button keymaps/default.txt config/brick.txt; do \
 		unzip -Z1 "$(DIST_DIR)/$(RELEASE_FILENAME)" | grep -qx "$$f" || \
 			{ echo "Error: $$f is missing from the archive root."; exit 1; }; \
 	done

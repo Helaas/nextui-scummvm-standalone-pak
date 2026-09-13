@@ -23,6 +23,8 @@ export HOME="$USERDATA_DIR"
 # own video and input backend (mali on tg5040/h700, KMSDRM on tg5050/my355,
 # NextUI's pad patch on h700), and its GPU driver needs the firmware's
 # libstdc++ (tg5050's libmali fails to load against an older bundled one).
+# Keep NextUI's own path for system scripts run from the pak (e.g. suspend).
+export NEXTUI_LD_LIBRARY_PATH="$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$PAK_DIR/lib:$LD_LIBRARY_PATH"
 [ "$PLATFORM" = "tg5040" ] && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/trimui/lib"
 
@@ -124,7 +126,6 @@ cleanup() {
 trap cleanup EXIT INT TERM HUP QUIT
 
 # Power button sleep/shutdown (standalone emulators have no native support).
-# minui-power-control knows the power key device on these platforms only.
 case "$PLATFORM" in
 	tg5040 | tg5050 | my355)
 		if command -v minui-power-control >/dev/null 2>&1; then
@@ -133,6 +134,17 @@ case "$PLATFORM" in
 		else
 			echo "minui-power-control not found in $PAK_DIR/bin"
 		fi
+		;;
+	h700)
+		# minui-power-control's handler reads a fixed input node, which is the
+		# pad on H700 (the power key is on axp2202-pek). The pak's helper finds
+		# the device reporting KEY_POWER and uses NextUI's suspend script.
+		# H700's ALSA driver does not recover a PCM left open across suspend, so
+		# the helper has ScummVM close its audio first (SIGUSR1/SIGUSR2, via the
+		# pak's ScummVM patch) and reopen it after wake.
+		export SCUMMVM_AUDIO_SIGNALS=1
+		chmod +x "$PAK_DIR/bin/power-button"
+		power-button scummvm &
 		;;
 	*)
 		echo "No power button support for ${PLATFORM:-this platform}; save and quit from ScummVM's menu"

@@ -19,7 +19,8 @@ great for jumping straight into a game, but the standalone build gives you:
 - Modern ScummVM defaults and the complete set of stable engines
 
 Power button **deep sleep** and **shutdown** are provided by
-[minui-power-control](https://github.com/ben16w/minui-power-control).
+[minui-power-control](https://github.com/ben16w/minui-power-control) on
+tg5040, tg5050, and my355, and by the pak's own `power-button` helper on h700.
 
 > [!NOTE]
 > NextUI menu integration does not apply to standalone emulators: no save
@@ -68,7 +69,8 @@ make distclean
 ```
 
 `make package` verifies the binary and asserts that `launch.sh`, `pak.json`,
-`bin/scummvm`, `bin/minui-power-control`, and `keymaps/default.txt` sit at the
+`bin/scummvm`, `bin/minui-power-control`, `bin/power-button`, and
+`keymaps/default.txt` sit at the
 archive root, and that no SDL2, ALSA, libstdc++, or libgcc_s slipped into
 `lib/`.
 
@@ -80,6 +82,9 @@ The build applies `patches/*.patch` to the ScummVM checkout:
 - `0002` makes the SDL backend ignore keyboard events when
   `SCUMMVM_IGNORE_KEYBOARD` is set. The Miyoo Flip reports its buttons both as
   a gamepad and as keys, which would otherwise trigger two actions per press.
+- `0003` lets `SIGUSR1`/`SIGUSR2` close and reopen the audio device when
+  `SCUMMVM_AUDIO_SIGNALS` is set. The h700 power helper uses it around deep
+  sleep, because H700's audio driver does not recover a device left open.
 
 ## Installation
 
@@ -170,13 +175,17 @@ ScummVM under **Options… → Keymaps**; your changes override the pak's defaul
 
 ### Power button
 
-On tg5040, tg5050, and my355:
-
 - **Short press**: deep sleep / wake
 - **Hold 2 s**: shut down (does **not** save — save first!)
 
-minui-power-control does not support the h700 port, so the pak leaves the
-power button alone there: save and quit through the ScummVM menu.
+minui-power-control's button handler reads a fixed input node, which on h700
+is the controller rather than the power key. There the pak runs
+`bin/power-button` (source in `src/power-button.c`) instead: it finds the
+input device that reports `KEY_POWER`, suspends through NextUI's own suspend
+script, and powers off through NextUI's launch loop, like minui-power-control
+does on the other platforms. Before sleeping it has ScummVM close its audio
+device and reopens it after wake (H700's audio driver does not recover an open
+device across suspend, the same reason NextUI closes audio before sleep).
 
 ## Releasing
 
