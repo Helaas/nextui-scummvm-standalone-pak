@@ -78,7 +78,8 @@ The build applies `patches/*.patch` to the ScummVM checkout:
 
 - `0001` lets the POSIX backend read handheld keymap defaults from the file
   named by `SCUMMVM_KEYMAP_DEFAULTS` (see `keymaps/default.txt`) and config
-  defaults from `SCUMMVM_CONFIG_DEFAULTS` (per device, see `config/brick.txt`).
+  defaults from `SCUMMVM_CONFIG_DEFAULTS` (device file first, then platform
+  fallback; see `config/brick.txt` and `config/h700.txt`).
 - `0002` makes the SDL backend ignore keyboard events when
   `SCUMMVM_IGNORE_KEYBOARD` is set. The Miyoo Flip reports its buttons both as
   a gamepad and as keys, which would otherwise trigger two actions per press.
@@ -155,7 +156,8 @@ Buttons follow their printed labels and NextUI's conventions:
 
 On devices without analog sticks (TrimUI Brick; Anbernic RG28XX, RG34XX,
 RG35XX Plus/2024, RG35XX SP, RG SP) the **d-pad moves the mouse** instead. The
-Brick starts at half ScummVM's default pointer speed; change it on any device
+Brick and all h700 devices start at half ScummVM's default pointer speed;
+saved settings take precedence. Change it on any device
 under **Options… → Controls → Pointer Speed**.
 
 A few engines ship their own control schemes (for example Blade Runner,

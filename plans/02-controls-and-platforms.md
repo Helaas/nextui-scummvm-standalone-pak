@@ -12,7 +12,8 @@
 - The Brick loads `config/brick.txt` (`kbdmouse_speed=1`) through
   `SCUMMVM_CONFIG_DEFAULTS`, handled by the same patch; `launch.sh` picks
   `config/$DEVICE.txt` when present. Hands-on: the d-pad mouse was too fast on
-  the Brick at the default speed but right on the H700 RG SP.
+  the Brick at the default speed. v1.0.1 applies the same slower default to
+  all h700 devices through `config/h700.txt`, as requested by the maintainer.
 - Verification: see [Verification](#verification). Remaining items are listed
   under [Open items](#open-items).
 
@@ -159,8 +160,9 @@ this method; launch from the NextUI menu instead.
 
 ## Open items
 
-- RG SP brightness flicker in Game Boy and ScummVM after the smoke test;
-  cause unresolved. See [follow-up investigation](04-device-verification.md#follow-up-rg-sp-display-flicker-remains-unresolved).
+- RG SP flicker follow-up cleared after booting an official image and
+  returning to NextUI; power cycles did not bring it back. See
+  [follow-up investigation](04-device-verification.md#follow-up-rg-sp-display-flicker-cleared).
 - Brick Pro L4/R4 and second Menu key are beyond SDL's X360 mapping and stay
   unused.
 - rg28xx (rotated panel) is untested.

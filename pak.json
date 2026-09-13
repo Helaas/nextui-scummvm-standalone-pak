@@ -1,8 +1,8 @@
 {
   "name": "SCUMMVMSA",
-  "version": "v1.0.0",
+  "version": "v1.0.1",
   "type": "EMU",
-  "description": "Standalone ScummVM 2026.3.0 for NextUI. Full ScummVM GUI and options, per-game keymaps, virtual keyboard, label-correct controls with a d-pad mouse on stickless devices. Power button sleep/shutdown via minui-power-control.",
+  "description": "Standalone ScummVM 2026.3.0 for NextUI. Full ScummVM GUI and options, per-game keymaps, virtual keyboard, label-correct controls with a d-pad mouse on stickless devices. Power button sleep/shutdown on all supported platforms.",
   "author": "Helaas",
   "repo_url": "https://github.com/Helaas/nextui-scummvm-standalone-pak",
   "release_filename": "SCUMMVMSA.pak.zip",
@@ -14,6 +14,7 @@
     "h700"
   ],
   "changelog": {
+    "v1.0.1": "Add h700 power button support: short press sleeps and wakes, holding for 2 seconds shuts down. Restore ScummVM audio after h700 sleep by closing and reopening the audio device, and preserve firmware library paths for suspend services. Reduce the default cursor speed on all h700 devices to match the TrimUI Brick; saved pointer-speed settings still take precedence. Verified sleep/wake, audio, controls and normal exit on RG SP and tg5040 Smart Pro.",
     "v1.0.0": "Initial release. Standalone ScummVM 2026.3.0 (pinned to fed42f2) built once for tg5040, tg5050, my355 and h700, using each firmware's SDL2. Handheld controls: A/B/X/Y follow the printed labels, Menu opens the ScummVM menu, Start the game menu, and the d-pad moves the mouse on devices without sticks. minui-power-control 3.0.0 provides power button deep sleep and shutdown on tg5040, tg5050 and my355."
   }
 }

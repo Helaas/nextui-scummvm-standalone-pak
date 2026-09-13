@@ -81,10 +81,12 @@ fi
 # Handheld keymap defaults (Menu = ScummVM menu, Start = game menu, ...),
 # loaded by the pak's ScummVM patch; per-game remaps still override them.
 export SCUMMVM_KEYMAP_DEFAULTS="$PAK_DIR/keymaps/default.txt"
-# Per-device config defaults (ScummVM options still override them), e.g. a
-# slower pointer on the Brick, where the d-pad mouse is too fast.
+# Device defaults take precedence over platform defaults; saved ScummVM
+# options still override either (e.g. slower pointers on Brick and h700).
 if [ -f "$PAK_DIR/config/$DEVICE.txt" ]; then
 	export SCUMMVM_CONFIG_DEFAULTS="$PAK_DIR/config/$DEVICE.txt"
+elif [ -f "$PAK_DIR/config/$PLATFORM.txt" ]; then
+	export SCUMMVM_CONFIG_DEFAULTS="$PAK_DIR/config/$PLATFORM.txt"
 fi
 
 # ── Resolve the ROM to a ScummVM game directory + target ─────────────────────

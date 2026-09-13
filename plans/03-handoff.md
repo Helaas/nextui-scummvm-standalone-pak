@@ -1,9 +1,9 @@
 # Handoff: SCUMMVMSA pak (state as of 2026-09-13)
 
-**Subsequent issue:** the maintainer reports RG SP brightness flicker in
-Game Boy and ScummVM after reinstalling BaseOS/NextUI. Cause unresolved;
-the audio/control smoke-test passes below do not clear this visual issue.
-See [the follow-up investigation](04-device-verification.md#follow-up-rg-sp-display-flicker-remains-unresolved).
+**Flicker follow-up resolved:** booting an official image and returning to
+NextUI cleared the RG SP flicker; the maintainer confirmed power cycling
+did not bring it back. No pak change was needed. See the
+[follow-up investigation](04-device-verification.md#follow-up-rg-sp-display-flicker-cleared).
 
 ## TL;DR
 
@@ -11,26 +11,26 @@ See [the follow-up investigation](04-device-verification.md#follow-up-rg-sp-disp
   Release workflow published it on the merge push). It covers the handheld
   controls, tg5040/tg5050/my355/h700 support, the firmware C++ runtime fix, the
   Brick pointer speed and the Flip keyboard fix.
-- **Unreleased changes on `main`:** h700 power button support (`src/power-button.c`)
+- **v1.0.1 changes:** h700 power button support (`src/power-button.c`)
   plus audio resume after sleep (`patches/0003-sdl-audio-suspend-signals.patch`).
   Built and deployed to the RG SP; the maintainer confirmed audio comes back
   after a real power-button sleep/wake on 2026-09-13.
 - The same candidate passed the maintainer's tg5040 Smart Pro regression
   check on 2026-09-13. Both devices' 140 pak files match the local package.
-- To ship it: **bump `pak.json` `version` and
-  add a changelog entry** (e.g. `v1.0.1`). The Release workflow skips
-  publishing when a release for the current version already exists.
+- `pak.json` is now **v1.0.1**, with release notes for h700 power/audio
+  support and a slower default cursor on all h700 devices. The Release
+  workflow publishes tag `v1.0.1` and `SCUMMVMSA.pak.zip` on the version push.
 
 ## Repository state
 
 | Item | State |
 | --- | --- |
 | Branch | `main`, tracking `origin/main`; default branch on GitHub is `main`; `scaffold` deleted |
-| Changes after `3912078` | h700 power-button/audio support, device verification and unresolved flicker investigation |
-| Release | `v1.0.0` (Latest), built from `3912078` |
-| CI | v1.0.0 Build and Release succeeded; the h700 change set passed local compatibility checks and device smoke tests; its push triggers a fresh build |
+| Changes after `3912078` | `60afb98` h700 power/audio support and verification; v1.0.1 adds the h700 cursor default and records flicker recovery |
+| Release | `v1.0.0` built from `3912078`; v1.0.1 version push publishes the next release |
+| CI | `60afb98` Build/Release workflow passed; publication skipped because v1.0.0 already existed. v1.0.1 triggers a fresh build and publication. |
 
-Unreleased changes (all part of the h700 power work):
+Changes included in v1.0.1:
 
 - `src/power-button.c` (new): power key helper for h700.
 - `patches/0003-sdl-audio-suspend-signals.patch` (new): SIGUSR1/SIGUSR2 close
@@ -43,7 +43,9 @@ Unreleased changes (all part of the h700 power work):
   `power-button scummvm &` instead of minui-power-control.
 - `README.md`, `plans/02-controls-and-platforms.md`: document the above.
 - `plans/03-handoff.md`, `plans/04-device-verification.md`: handoff, measured
-  results and unresolved RG SP flicker follow-up.
+  results and RG SP flicker recovery.
+- `config/h700.txt`: `kbdmouse_speed=1` for all h700 devices. Device config
+  files take precedence over platform files; saved ScummVM options win over both.
 
 ## How the pak works (orientation)
 
@@ -60,8 +62,8 @@ Unreleased changes (all part of the h700 power work):
   the d-pad hat to the left stick (virtual mouse). `keymaps/default.txt` holds
   the handheld keymap defaults (patch 0001, `SCUMMVM_KEYMAP_DEFAULTS`).
   `config/<DEVICE>.txt` holds per-device config defaults (patch 0001,
-  `SCUMMVM_CONFIG_DEFAULTS`); only `config/brick.txt` (`kbdmouse_speed=1`)
-  exists.
+  `SCUMMVM_CONFIG_DEFAULTS`), with `config/<PLATFORM>.txt` as fallback.
+  `config/brick.txt` and `config/h700.txt` both set `kbdmouse_speed=1`.
 - **my355:** `SCUMMVM_IGNORE_KEYBOARD=1` (patch 0002), because the Flip reports
   every button both as a gamepad and as keyboard keys.
 - **Power button:** minui-power-control 3.0.0 on tg5040/tg5050/my355. On h700
@@ -143,10 +145,9 @@ maintainer. Notes for working with them:
    after 2 s" (helper) or "Could not reopen the audio device after resume"
    (ScummVM); the fallback is NextUI's own approach of fully quitting audio
    before sleep, which is what patch 0003 already does via `suspendAudio()`.
-3. Investigate the RG SP flicker before publishing a new release. The source
-   changes are being committed/pushed without a version bump; `v1.0.0`
-   already exists, so the Release workflow builds but skips publication.
-   When ready to release, bump `pak.json` and add a changelog entry.
+3. v1.0.1 is authorized for release. The flicker cleared after booting an
+   official image and returning to NextUI, including subsequent power cycles.
+   Verify the version-push workflow publishes v1.0.1 with the expected pak.
 4. Remaining open items (from plan 02): Brick Pro L4/R4 and second Menu key
    are unmapped (beyond SDL's X360 mapping); rg28xx rotated panel untested;
    optionally propose capability-based power key detection upstream to

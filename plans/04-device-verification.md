@@ -1,6 +1,25 @@
 # Device verification: h700 and tg5040 (2026-09-13)
 
-## Follow-up: RG SP display flicker remains unresolved
+## v1.0.1 release checks
+
+- `make package` passed with the pinned toolchain, including binary and
+  archive checks. The archive contains `pak.json` version `v1.0.1`, the
+  updated launcher and `config/h700.txt` with `kbdmouse_speed=1`.
+- Launcher checks with stub emulator/power processes passed for h700 RG SP
+  and RG35XX H, tg5040 Brick and Smart Pro, tg5050 Smart Pro S, and my355.
+  Both h700 models select platform defaults, Brick selects its device file,
+  and the other devices retain stock defaults. A device-specific override
+  also takes precedence over the h700 platform file.
+- The cursor change uses the existing config-default loader, so values
+  already saved in ScummVM still win. Pointer feel at the new h700 default
+  was not rechecked on hardware during release preparation.
+
+## Follow-up: RG SP display flicker cleared
+
+**Resolution reported by the maintainer:** booting an official image and
+then returning to NextUI cleared the flicker. Subsequent power cycling did
+not bring it back. No pak fix was needed; the underlying cause was not
+established. The maintainer authorized v1.0.1 publication afterward.
 
 After the smoke test, the maintainer reported brightness fading in both Game
 Boy and ScummVM, including the paused Game Boy menu, but not the NextUI
@@ -33,8 +52,10 @@ not coverage of every engine or supported handheld.
 ## Candidate
 
 The h700 power-button/audio changes after `3912078`, uncommitted at the time
-of testing. The candidate identifies as `v1.0.0`. The subsequent source push
-keeps that version unchanged and does not publish a new release.
+of testing. The candidate identifies as `v1.0.0`. The subsequent `60afb98` source push
+kept that version unchanged. v1.0.1 additionally applies the Brick cursor
+default to all h700 devices; the hashes below identify the earlier tested
+candidate, not the v1.0.1 release archive.
 
 | Artifact | SHA-256 |
 | --- | --- |

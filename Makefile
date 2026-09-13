@@ -189,7 +189,7 @@ package: deps libs helpers
 	@chmod 755 "$(PAK_DIR)/launch.sh" "$(PAK_DIR)/bin/scummvm" "$(PAK_DIR)/bin/minui-power-control" "$(PAK_DIR)/bin/power-button"
 	@rm -f "$(DIST_DIR)/$(RELEASE_FILENAME)"
 	@cd "$(PAK_DIR)" && zip -9 -q -r "$(CURDIR)/$(DIST_DIR)/$(RELEASE_FILENAME)" . -x '.*'
-	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control bin/power-button keymaps/default.txt config/brick.txt; do \
+	@for f in launch.sh pak.json LICENSE bin/scummvm bin/minui-power-control bin/power-button keymaps/default.txt config/brick.txt config/h700.txt; do \
 		unzip -Z1 "$(DIST_DIR)/$(RELEASE_FILENAME)" | grep -qx "$$f" || \
 			{ echo "Error: $$f is missing from the archive root."; exit 1; }; \
 	done
