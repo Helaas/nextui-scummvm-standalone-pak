@@ -87,6 +87,12 @@ The build applies `patches/*.patch` to the ScummVM checkout:
   `SCUMMVM_AUDIO_SIGNALS` is set. The h700 power helper uses it around deep
   sleep, because H700's audio driver does not recover a device left open.
 
+The toolchain sysroot has no giflib or libmpeg2, so the build downloads their
+release tarballs (sha256-pinned in the `Makefile`) and links them statically.
+Without them ScummVM's configure skips Phoenix VR, QD Engine (Pilot Brothers 3)
+and Alcachofa. Hpl1 (Penumbra) is left out on purpose; see
+[Unsupported games](#unsupported-games).
+
 ## Installation
 
 ### Via Pak Store (Recommended)
@@ -133,6 +139,14 @@ the libretro pak), so both paks can share one set of game folders.
 
 Saves go to `Saves/SCUMMVMSA/` on the SD card. ScummVM's config lives in
 `.userdata/<platform>/SCUMMVMSA-scummvm/`.
+
+### Unsupported games
+
+The **Penumbra** games (ScummVM's Hpl1 engine) are not included and report
+"could not find suitable engine plugin". Hpl1's hardware renderer needs
+desktop OpenGL, which these handhelds' GPUs (OpenGL ES 2 only) don't provide,
+so it crashes on start. Its software (TinyGL) renderer runs, but the picture
+is garbled and the 3D scenes run at 5–6 fps on the TrimUI Brick.
 
 ## Controls
 
