@@ -57,21 +57,30 @@ case "$PLATFORM" in
 		fi
 		;;
 	h700)
-		# ANBERNIC-keys under NextUI's H700 SDL: ESC/VOL-/VOL+ enumerate first as
-		# b0-b2, and the stick-click keys interleave with the triggers, so the
-		# numbering above MENU depends on the model's stick count.
+		# ANBERNIC-keys under NextUI's H700 SDL, which SDL picks by GUID. Before
+		# rc11 (or with SDL_JOYSTICK_H700_FIXED_LAYOUT=0), ESC/VOL-/VOL+ enumerate
+		# first as b0-b2, and the stick-click keys interleave with the triggers,
+		# so the numbering above MENU depends on the model's stick count.
 		PAD="19000000010000000100000000010000,ANBERNIC-keys,a:b3,b:b4,x:b6,y:b5,leftshoulder:b7,rightshoulder:b8,back:b9,start:b10,guide:b11,"
+		# rc11 and later give every model one fixed layout under a tagged GUID:
+		# TRIMUI Player1's indices, with L2/R2 reported as axes.
+		FIXED_PAD="19000000010000000100000000016e01,ANBERNIC-keys,a:b1,b:b0,x:b3,y:b2,back:b6,start:b7,guide:b8,leftshoulder:b4,rightshoulder:b5,lefttrigger:a2,righttrigger:a5,leftstick:b9,rightstick:b10,"
 		case "$DEVICE" in
 			rg40xxh | rgcubexx | rg34xxsp | rg35xxh | rg35xxpro)
 				PAD="${PAD}leftstick:b12,lefttrigger:b13,righttrigger:b14,rightstick:b15,leftx:a0,lefty:a1,rightx:a2,righty:a3,$DPAD_BUTTONS"
+				FIXED_PAD="${FIXED_PAD}leftx:a0,lefty:a1,rightx:a3,righty:a4,$DPAD_BUTTONS"
 				;;
 			rg40xxv)
 				PAD="${PAD}leftstick:b12,lefttrigger:b13,righttrigger:b14,leftx:a0,lefty:a1,$DPAD_BUTTONS"
+				FIXED_PAD="${FIXED_PAD}leftx:a0,lefty:a1,$DPAD_BUTTONS"
 				;;
 			*)
 				PAD="${PAD}lefttrigger:b12,righttrigger:b13,$DPAD_AS_STICK"
+				FIXED_PAD="$FIXED_PAD$DPAD_AS_STICK"
 				;;
 		esac
+		PAD="${PAD}platform:Linux,
+$FIXED_PAD"
 		;;
 esac
 if [ -n "$PAD" ]; then

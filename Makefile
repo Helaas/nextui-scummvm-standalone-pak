@@ -14,6 +14,19 @@ MPC_URL     := https://github.com/ben16w/minui-power-control/releases/download/$
 MPC_SHA256  := 9ea701b145b876a8f65b4152f1d6bf273069d16ad5aa8d91e615639f43e10c6e
 MPC_BIN     := .cache/minui-power-control-$(MPC_VERSION)
 
+# Codec libraries the toolchain sysroot lacks, linked statically into ScummVM:
+# giflib for Phoenix VR, libmpeg2 for QD Engine and Alcachofa.
+# Debian's pool carries the upstream release tarballs (libmpeg2's own site is
+# gone); both are pinned by sha256.
+GIFLIB_VERSION := 5.2.2
+GIFLIB_URL     := https://deb.debian.org/debian/pool/main/g/giflib/giflib_$(GIFLIB_VERSION).orig.tar.gz
+GIFLIB_SHA256  := be7ffbd057cadebe2aa144542fd90c6838c6a083b5e8a9048b8ee3b66b29d5fb
+GIFLIB_TAR     := .cache/giflib-$(GIFLIB_VERSION).tar.gz
+MPEG2_VERSION  := 0.5.1
+MPEG2_URL      := https://deb.debian.org/debian/pool/main/m/mpeg2dec/mpeg2dec_$(MPEG2_VERSION).orig.tar.gz
+MPEG2_SHA256   := dee22e893cb5fc2b2b6ebd60b88478ab8556cb3b93f9a0d7ce8f3b61851871d4
+MPEG2_TAR      := .cache/libmpeg2-$(MPEG2_VERSION).tar.gz
+
 # Pak metadata
 PAK_NAME         := SCUMMVMSA
 RELEASE_FILENAME := $(PAK_NAME).pak.zip
@@ -104,18 +117,32 @@ $(MPC_BIN):
 	curl -fL --retry 3 -o $(MPC_BIN) $(MPC_URL)
 	@echo "$(MPC_SHA256)  $(MPC_BIN)" | shasum -a 256 -c -
 
+$(GIFLIB_TAR):
+	@echo "==> Downloading giflib $(GIFLIB_VERSION)"
+	@mkdir -p .cache
+	curl -fL --retry 3 -o $@.tmp $(GIFLIB_URL)
+	@echo "$(GIFLIB_SHA256)  $@.tmp" | shasum -a 256 -c -
+	@mv $@.tmp $@
+
+$(MPEG2_TAR):
+	@echo "==> Downloading libmpeg2 $(MPEG2_VERSION)"
+	@mkdir -p .cache
+	curl -fL --retry 3 -o $@.tmp $(MPEG2_URL)
+	@echo "$(MPEG2_SHA256)  $@.tmp" | shasum -a 256 -c -
+	@mv $@.tmp $@
+
 ###########################################################
 # Build — cross-compile inside Docker
 ###########################################################
 
-build: $(SENTINEL)
+build: $(SENTINEL) $(GIFLIB_TAR) $(MPEG2_TAR)
 	@echo "==> Building ScummVM $(SCUMMVM_VER) with $(TOOLCHAIN)"
 	@mkdir -p $(BUILD_DIR)
 	docker run --rm \
 		-v "$(CURDIR)":/workspace \
 		-w /workspace/$(CACHE_DIR) \
 		$(TOOLCHAIN) \
-		/bin/bash /workspace/scripts/docker-build.sh "$(STAGE_DIR)"
+		/bin/bash /workspace/scripts/docker-build.sh "$(STAGE_DIR)" "$(GIFLIB_TAR)" "$(MPEG2_TAR)"
 	@test -f "$(STAGE_DIR)/usr/bin/scummvm" || \
 		{ echo "Error: $(STAGE_DIR)/usr/bin/scummvm missing after build."; exit 1; }
 

@@ -87,6 +87,12 @@ The build applies `patches/*.patch` to the ScummVM checkout:
   `SCUMMVM_AUDIO_SIGNALS` is set. The h700 power helper uses it around deep
   sleep, because H700's audio driver does not recover a device left open.
 
+The toolchain sysroot has no giflib or libmpeg2, so the build downloads their
+release tarballs (sha256-pinned in the `Makefile`) and links them statically.
+Without them ScummVM's configure skips Phoenix VR, QD Engine (Pilot Brothers 3)
+and Alcachofa. Hpl1 (Penumbra) is left out on purpose; see
+[Unsupported games](#unsupported-games).
+
 ## Installation
 
 ### Via Pak Store (Recommended)
@@ -112,12 +118,16 @@ The build applies `patches/*.patch` to the ScummVM checkout:
 
 Place each game in its own folder under a folder suffixed with `(SCUMMVMSA)`
 so NextUI associates it with this pak, and add a `.scummvm` shortcut file
-containing the game's ScummVM ID:
+containing the game's ScummVM ID. NextUI launches a folder directly only when
+it holds a `.m3u` named after the folder, so add one that names the shortcut;
+without it, selecting the game opens the folder and you pick the `.scummvm`
+file from the list (awkward for games with many files and subfolders):
 
 ```
 Roms/
 └── ScummVM (SCUMMVMSA)/
     └── The Secret of Monkey Island/
+        ├── The Secret of Monkey Island.m3u       ← contains: The Secret of Monkey Island.scummvm
         ├── The Secret of Monkey Island.scummvm   ← contains: scumm:monkey
         ├── MONKEY.000
         └── MONKEY.001
@@ -128,11 +138,19 @@ The game ID (`engine:game`, e.g. `scumm:monkey`) comes from the
 launch the pak on any folder without a shortcut to open the ScummVM GUI
 launcher and use **Add Game…**, which detects IDs for you.
 
-A `.m3u` file pointing at the `.scummvm` file also works (same convention as
-the libretro pak), so both paks can share one set of game folders.
+The pak follows the `.m3u` to the `.scummvm` file (same convention as the
+libretro pak), so both paks can share one set of game folders.
 
 Saves go to `Saves/SCUMMVMSA/` on the SD card. ScummVM's config lives in
 `.userdata/<platform>/SCUMMVMSA-scummvm/`.
+
+### Unsupported games
+
+The **Penumbra** games (ScummVM's Hpl1 engine) are not included and report
+"could not find suitable engine plugin". Hpl1's hardware renderer needs
+desktop OpenGL, which these handhelds' GPUs (OpenGL ES 2 only) don't provide,
+so it crashes on start. Its software (TinyGL) renderer runs, but the picture
+is garbled and the 3D scenes run at 5–6 fps on the TrimUI Brick.
 
 ## Controls
 
