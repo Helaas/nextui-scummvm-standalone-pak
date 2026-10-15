@@ -118,12 +118,16 @@ and Alcachofa. Hpl1 (Penumbra) is left out on purpose; see
 
 Place each game in its own folder under a folder suffixed with `(SCUMMVMSA)`
 so NextUI associates it with this pak, and add a `.scummvm` shortcut file
-containing the game's ScummVM ID:
+containing the game's ScummVM ID. NextUI launches a folder directly only when
+it holds a `.m3u` named after the folder, so add one that names the shortcut;
+without it, selecting the game opens the folder and you pick the `.scummvm`
+file from the list (awkward for games with many files and subfolders):
 
 ```
 Roms/
 └── ScummVM (SCUMMVMSA)/
     └── The Secret of Monkey Island/
+        ├── The Secret of Monkey Island.m3u       ← contains: The Secret of Monkey Island.scummvm
         ├── The Secret of Monkey Island.scummvm   ← contains: scumm:monkey
         ├── MONKEY.000
         └── MONKEY.001
@@ -134,8 +138,8 @@ The game ID (`engine:game`, e.g. `scumm:monkey`) comes from the
 launch the pak on any folder without a shortcut to open the ScummVM GUI
 launcher and use **Add Game…**, which detects IDs for you.
 
-A `.m3u` file pointing at the `.scummvm` file also works (same convention as
-the libretro pak), so both paks can share one set of game folders.
+The pak follows the `.m3u` to the `.scummvm` file (same convention as the
+libretro pak), so both paks can share one set of game folders.
 
 Saves go to `Saves/SCUMMVMSA/` on the SD card. ScummVM's config lives in
 `.userdata/<platform>/SCUMMVMSA-scummvm/`.
